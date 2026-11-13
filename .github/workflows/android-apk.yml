@@ -57,6 +57,8 @@ jobs:
           set -euxo pipefail
           cd "$APP_DIR"
           npx expo install --fix
+          npx expo install expo-constants expo-linking expo-asset
+          npm dedupe
           npx expo-doctor
 
       - name: Create notification icon
