@@ -3,9 +3,7 @@ name: Build SAM3 Android APK
 on:
   workflow_dispatch:
   push:
-    paths:
-      - "SAM3-project.zip"
-      - ".github/workflows/android-apk.yml"
+    branches: [main]
 
 permissions:
   contents: read
@@ -14,32 +12,60 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Unpack project
+
+      - name: Unpack and locate Expo project
+        shell: bash
         run: |
-          unzip -o SAM3-project.zip
-          test -f SAM3/package.json
+          set -euxo pipefail
+          unzip -o SAM3-project.zip -d extracted
+          PACKAGE_JSON="$(find extracted -type f -name package.json -not -path '*/node_modules/*' | head -n 1)"
+          if [ -z "$PACKAGE_JSON" ]; then
+            echo "No package.json found in SAM3-project.zip"
+            find extracted -maxdepth 4 -type f | sort | head -n 200
+            exit 1
+          fi
+          APP_DIR="$(dirname "$PACKAGE_JSON")"
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          echo "Found app in: $APP_DIR"
+          cat "$PACKAGE_JSON"
+
       - name: Install dependencies
-        working-directory: SAM3
-        run: npm install
+        run: |
+          cd "$APP_DIR"
+          npm install
+
       - name: Generate Android project
-        working-directory: SAM3
-        run: npx expo prebuild --platform android --non-interactive
-      - uses: actions/setup-java@v4
+        run: |
+          cd "$APP_DIR"
+          npx expo prebuild --platform android --non-interactive
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Build debug APK
-        working-directory: SAM3/android
         run: |
+          cd "$APP_DIR/android"
           chmod +x gradlew
           ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: SAM3-demo-apk
-          path: SAM3/android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.APP_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 14
