@@ -96,37 +96,16 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Set Android compile SDK for Expo Asset
+      - name: Configure Android compile SDK
         shell: bash
         run: |
-          python3 - "$APP_DIR/android" <<'PY'
-          import pathlib, re, sys
-          root = pathlib.Path(sys.argv[1])
-          candidates = [root / "app/build.gradle", root / "app/build.gradle.kts", root / "build.gradle", root / "build.gradle.kts"]
-          found = []
-          for p in candidates:
-              if not p.exists():
-                  continue
-              s = p.read_text()
-              patterns = [
-                  (r'(compileSdkVersion\\s*\\(?\\s*)\\d+', r'\\g<1>37'),
-                  (r'(compileSdk\\s*\\(?\\s*)\\d+', r'\\g<1>37'),
-              ]
-              for pattern, replacement in patterns:
-                  s2, n = re.subn(pattern, replacement, s)
-                  if n:
-                      p.write_text(s2)
-                      found.append(f"{p}: {n}")
-                      break
-          if not found:
-              print("Gradle files checked:")
-              for p in candidates:
-                  if p.exists():
-                      print(f"--- {p} ---")
-                      print("\\n".join(line for line in p.read_text().splitlines() if "compileSdk" in line))
-              raise SystemExit("No compileSdk setting found in Android Gradle files")
-          print("Updated compile SDK:", found)
-          PY
+          set -euxo pipefail
+          PROPS="$APP_DIR/android/gradle.properties"
+          touch "$PROPS"
+          grep -v '^android\\.compileSdkVersion=' "$PROPS" > "$PROPS.tmp" || true
+          printf '\\nandroid.compileSdkVersion=37\\n' >> "$PROPS.tmp"
+          mv "$PROPS.tmp" "$PROPS"
+          grep 'android.compileSdkVersion' "$PROPS"
 
       - name: Install Android SDK packages
         shell: bash
