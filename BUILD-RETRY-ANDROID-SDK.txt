@@ -1,0 +1,1 @@
+Retry the APK workflow after adding the official Android SDK setup action.
