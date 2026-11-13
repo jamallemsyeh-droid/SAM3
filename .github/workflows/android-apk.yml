@@ -26,14 +26,9 @@ jobs:
           set -euxo pipefail
           unzip -o SAM3-project.zip -d extracted
           PACKAGE_JSON="$(find extracted -type f -name package.json -not -path '*/node_modules/*' | head -n 1)"
-          if [ -z "$PACKAGE_JSON" ]; then
-            echo "No package.json found in SAM3-project.zip"
-            find extracted -maxdepth 4 -type f | sort | head -n 200
-            exit 1
-          fi
+          test -n "$PACKAGE_JSON"
           APP_DIR="$(dirname "$PACKAGE_JSON")"
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
-          echo "Found app in: $APP_DIR"
           cat "$PACKAGE_JSON"
 
       - name: Install dependencies
@@ -41,7 +36,7 @@ jobs:
           cd "$APP_DIR"
           npm install
 
-      - name: Create required notification icon
+      - name: Create notification icon
         run: |
           mkdir -p "$APP_DIR/assets"
           python3 - "$APP_DIR/assets/notification-icon.png" <<'PY'
@@ -51,16 +46,12 @@ jobs:
           for y in range(h):
               raw.append(0)
               for x in range(w):
-                  d = math.hypot(x - 48, y - 48)
-                  a = 255 if d <= 34 else 0
-                  raw.extend((255, 255, 255, a))
-          def chunk(t, data):
-              return struct.pack(">I", len(data)) + t + data + struct.pack(">I", zlib.crc32(t + data) & 0xffffffff)
-          png = b"\x89PNG\r\n\x1a\n"
-          png += chunk(b"IHDR", struct.pack(">2I5B", w, h, 8, 6, 0, 0, 0))
-          png += chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-          png += chunk(b"IEND", b"")
-          open(sys.argv[1], "wb").write(png)
+                  a = 255 if math.hypot(x-48,y-48) <= 34 else 0
+                  raw.extend((255,255,255,a))
+          def chunk(t,d):
+              return struct.pack(">I",len(d))+t+d+struct.pack(">I",zlib.crc32(t+d)&0xffffffff)
+          png=b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">2I5B",w,h,8,6,0,0,0))+chunk(b"IDAT",zlib.compress(bytes(raw),9))+chunk(b"IEND",b"")
+          open(sys.argv[1],"wb").write(png)
           PY
 
       - name: Generate Android project
@@ -75,8 +66,10 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build debug APK
         run: |
