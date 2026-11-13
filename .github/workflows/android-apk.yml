@@ -34,38 +34,13 @@ jobs:
           cd "$APP_DIR"
           npm install
 
-      - name: Normalize Expo module publication metadata
+      - name: Align Expo dependencies with SDK 54
         shell: bash
         run: |
-          python3 - "$APP_DIR/node_modules" <<'PY'
-          import json, pathlib, sys
-          root = pathlib.Path(sys.argv[1])
-          patched = []
-          def visit(value, version):
-              changed = False
-              if isinstance(value, dict):
-                  publication = value.get("publication")
-                  if isinstance(publication, dict) and not publication.get("version") and version:
-                      publication["version"] = version
-                      changed = True
-                  for child in value.values():
-                      changed = visit(child, version) or changed
-              elif isinstance(value, list):
-                  for child in value:
-                      changed = visit(child, version) or changed
-              return changed
-          for config in root.rglob("expo-module.config.json"):
-              try:
-                  data = json.loads(config.read_text())
-                  pkg = json.loads((config.parent / "package.json").read_text())
-              except (OSError, ValueError):
-                  continue
-              version = pkg.get("version")
-              if visit(data, version):
-                  config.write_text(json.dumps(data, indent=2) + "\n")
-                  patched.append(f"{pkg.get('name', config.parent.name)}@{version}")
-          print("Patched Expo module configs:", patched or "none")
-          PY
+          set -euxo pipefail
+          cd "$APP_DIR"
+          npx expo install --fix
+          npx expo-doctor
 
       - name: Create notification icon
         run: |
@@ -95,17 +70,6 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: gradle
-
-      - name: Configure Android compile SDK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          PROPS="$APP_DIR/android/gradle.properties"
-          touch "$PROPS"
-          grep -v '^android\\.compileSdkVersion=' "$PROPS" > "$PROPS.tmp" || true
-          printf '\nandroid.compileSdkVersion=36\n' >> "$PROPS.tmp"
-          mv "$PROPS.tmp" "$PROPS"
-          grep 'android.compileSdkVersion' "$PROPS"
 
       - name: Install Android SDK packages
         shell: bash
