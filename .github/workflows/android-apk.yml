@@ -43,7 +43,7 @@ jobs:
           deps["react-dom"]="19.1.0"
           with open(p,"w") as f:
               json.dump(d,f,indent=2)
-              f.write("\\n")
+              f.write("\n")
           PY
 
       - name: Install dependencies
