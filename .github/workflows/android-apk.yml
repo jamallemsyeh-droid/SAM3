@@ -62,7 +62,7 @@ jobs:
                   continue
               version = pkg.get("version")
               if visit(data, version):
-                  config.write_text(json.dumps(data, indent=2) + "\\n")
+                  config.write_text(json.dumps(data, indent=2) + "\n")
                   patched.append(f"{pkg.get('name', config.parent.name)}@{version}")
           print("Patched Expo module configs:", patched or "none")
           PY
