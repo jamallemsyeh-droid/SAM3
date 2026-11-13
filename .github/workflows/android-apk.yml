@@ -99,25 +99,33 @@ jobs:
       - name: Set Android compile SDK for Expo Asset
         shell: bash
         run: |
-          python3 - "$APP_DIR/android/build.gradle" <<'PY'
+          python3 - "$APP_DIR/android" <<'PY'
           import pathlib, re, sys
-          p = pathlib.Path(sys.argv[1])
-          s = p.read_text()
-          patterns = [
-              r'(compileSdkVersion\s*=\s*)36\b',
-              r'(compileSdk\s*=\s*)36\b',
-              r'(compileSdkVersion\s+)36\b',
-          ]
-          for pattern in patterns:
-              s, count = re.subn(pattern, r'\g<1>37', s)
-              if count:
-                  p.write_text(s)
-                  print(f"Updated compile SDK references: {count}")
-                  break
-          else:
-              print("No explicit API 36 compile SDK assignment found; showing relevant lines:")
-              print("\n".join(line for line in s.splitlines() if "compileSdk" in line))
-              raise SystemExit("Could not update compile SDK to 37")
+          root = pathlib.Path(sys.argv[1])
+          candidates = [root / "app/build.gradle", root / "app/build.gradle.kts", root / "build.gradle", root / "build.gradle.kts"]
+          found = []
+          for p in candidates:
+              if not p.exists():
+                  continue
+              s = p.read_text()
+              patterns = [
+                  (r'(compileSdkVersion\\s*\\(?\\s*)\\d+', r'\\g<1>37'),
+                  (r'(compileSdk\\s*\\(?\\s*)\\d+', r'\\g<1>37'),
+              ]
+              for pattern, replacement in patterns:
+                  s2, n = re.subn(pattern, replacement, s)
+                  if n:
+                      p.write_text(s2)
+                      found.append(f"{p}: {n}")
+                      break
+          if not found:
+              print("Gradle files checked:")
+              for p in candidates:
+                  if p.exists():
+                      print(f"--- {p} ---")
+                      print("\\n".join(line for line in p.read_text().splitlines() if "compileSdk" in line))
+              raise SystemExit("No compileSdk setting found in Android Gradle files")
+          print("Updated compile SDK:", found)
           PY
 
       - name: Install Android SDK packages
