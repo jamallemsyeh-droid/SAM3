@@ -29,6 +29,23 @@ jobs:
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
           cat "$PACKAGE_JSON"
 
+      - name: Pin SDK 54 compatible React and Expo packages
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 - "$APP_DIR/package.json" <<'PY'
+          import json, sys
+          p=sys.argv[1]
+          d=json.load(open(p))
+          deps=d.setdefault("dependencies", {})
+          deps["expo-audio"]="~1.1.1"
+          deps["react-native"]="0.81.5"
+          deps["react-dom"]="19.1.0"
+          with open(p,"w") as f:
+              json.dump(d,f,indent=2)
+              f.write("\\n")
+          PY
+
       - name: Install dependencies
         run: |
           cd "$APP_DIR"
