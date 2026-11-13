@@ -103,7 +103,7 @@ jobs:
           PROPS="$APP_DIR/android/gradle.properties"
           touch "$PROPS"
           grep -v '^android\\.compileSdkVersion=' "$PROPS" > "$PROPS.tmp" || true
-          printf '\\nandroid.compileSdkVersion=37\\n' >> "$PROPS.tmp"
+          printf '\nandroid.compileSdkVersion=36\n' >> "$PROPS.tmp"
           mv "$PROPS.tmp" "$PROPS"
           grep 'android.compileSdkVersion' "$PROPS"
 
@@ -114,7 +114,7 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" --install "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build debug APK
         run: |
