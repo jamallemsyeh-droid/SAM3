@@ -41,24 +41,30 @@ jobs:
           import json, pathlib, sys
           root = pathlib.Path(sys.argv[1])
           patched = []
+          def visit(value, version):
+              changed = False
+              if isinstance(value, dict):
+                  publication = value.get("publication")
+                  if isinstance(publication, dict) and not publication.get("version") and version:
+                      publication["version"] = version
+                      changed = True
+                  for child in value.values():
+                      changed = visit(child, version) or changed
+              elif isinstance(value, list):
+                  for child in value:
+                      changed = visit(child, version) or changed
+              return changed
           for config in root.rglob("expo-module.config.json"):
               try:
                   data = json.loads(config.read_text())
                   pkg = json.loads((config.parent / "package.json").read_text())
               except (OSError, ValueError):
                   continue
-              changed = False
-              for project in data.get("android", {}).get("projects", []):
-                  publication = project.get("publication")
-                  if isinstance(publication, dict) and not publication.get("version"):
-                      version = pkg.get("version")
-                      if version:
-                          publication["version"] = version
-                          changed = True
-              if changed:
+              version = pkg.get("version")
+              if visit(data, version):
                   config.write_text(json.dumps(data, indent=2) + "\\n")
-                  patched.append(f"{pkg.get('name', config.parent.name)}@{pkg.get('version')}")
-          print("Patched missing Android publication versions:", patched or "none")
+                  patched.append(f"{pkg.get('name', config.parent.name)}@{version}")
+          print("Patched Expo module configs:", patched or "none")
           PY
 
       - name: Create notification icon
