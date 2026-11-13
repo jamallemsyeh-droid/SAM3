@@ -103,13 +103,21 @@ jobs:
           import pathlib, re, sys
           p = pathlib.Path(sys.argv[1])
           s = p.read_text()
-          s2, n = re.subn(r'(compileSdkVersion\\s*=\\s*)36\\b', r'\\g<1>37', s)
-          if n == 0:
-              s2, n = re.subn(r'(compileSdk\\s*=\\s*)36\\b', r'\\g<1>37', s)
-          if n == 0:
-              raise SystemExit("Could not locate compileSdkVersion 36 in android/build.gradle")
-          p.write_text(s2)
-          print("Updated Android compile SDK to 37")
+          patterns = [
+              r'(compileSdkVersion\s*=\s*)36\b',
+              r'(compileSdk\s*=\s*)36\b',
+              r'(compileSdkVersion\s+)36\b',
+          ]
+          for pattern in patterns:
+              s, count = re.subn(pattern, r'\g<1>37', s)
+              if count:
+                  p.write_text(s)
+                  print(f"Updated compile SDK references: {count}")
+                  break
+          else:
+              print("No explicit API 36 compile SDK assignment found; showing relevant lines:")
+              print("\n".join(line for line in s.splitlines() if "compileSdk" in line))
+              raise SystemExit("Could not update compile SDK to 37")
           PY
 
       - name: Install Android SDK packages
