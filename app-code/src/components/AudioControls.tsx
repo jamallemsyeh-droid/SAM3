@@ -60,7 +60,7 @@ export function AudioControls() {
     } catch (e) {
       try { recorder.current?.disconnect(); await recorder.current?.stop(); } catch {}
       try { await context.current?.suspend(); await AudioManager.setAudioSessionActivity(false); } catch {}
-      setStatus('تعذر تشغيل الصوت: تحقق من إذن الميكروفون وتوصيل سماعات الأذن');
+      const detail = e instanceof Error ? e.message : String(e);\n      setStatus(`تعذر تشغيل الصوت: ${detail.slice(0, 140)}`);
       setActive(false);
     } finally { busy.current = false; }
   };
