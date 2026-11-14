@@ -27,6 +27,23 @@ jobs:
           test -n "$PACKAGE_JSON"
           APP_DIR="$(dirname "$PACKAGE_JSON")"
           echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          mkdir -p "$APP_DIR/src/components"
+          cp app-code/src/components/AudioControls.tsx "$APP_DIR/src/components/AudioControls.tsx"
+          cp app-code/app.json "$APP_DIR/app.json"
+          python3 - "$PACKAGE_JSON" "$APP_DIR/app/index.tsx" <<'PY'
+          import json,sys
+          p=sys.argv[1]
+          d=json.load(open(p))
+          d.setdefault("dependencies", {})["react-native-audio-api"]="*"
+          with open(p,"w") as f:
+              json.dump(d,f,indent=2)
+              f.write("\\n")
+          p=sys.argv[2]
+          s=open(p).read()
+          s=s.replace("  const [active, setActive] = useState(false);\\n","")
+          s=s.replace("<AudioControls active={active} onToggle={() => setActive(v => !v)} />","<AudioControls />")
+          open(p,"w").write(s)
+          PY
           cat "$PACKAGE_JSON"
 
       - name: Pin SDK 54 compatible React and Expo packages
