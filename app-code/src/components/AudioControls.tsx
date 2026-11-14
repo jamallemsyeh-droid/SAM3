@@ -11,14 +11,15 @@ export function AudioControls() {
   const busy = useRef(false);
 
   useEffect(() => {
-    recorder.current = new AudioRecorder();
     context.current = new AudioContext();
     gain.current = context.current.createGain();
     gain.current.gain.value = 1.5;
     gain.current.connect(context.current.destination);
     return () => {
       void (async () => {
-        try { await recorder.current?.stop(); } catch {}
+        const oldRecorder = recorder.current;
+        recorder.current = null;
+        try { if (oldRecorder) { await oldRecorder.stop(); oldRecorder.disconnect(); } } catch {}
         try { context.current?.close(); } catch {}
         try { await AudioManager.setAudioSessionActivity(false); } catch {}
       })();
@@ -29,8 +30,9 @@ export function AudioControls() {
     if (busy.current) return;
     busy.current = true;
     try {
-      recorder.current?.disconnect();
-      await recorder.current?.stop();
+      const oldRecorder = recorder.current;
+      if (oldRecorder) { await oldRecorder.stop(); oldRecorder.disconnect(); }
+      recorder.current = null;
       await context.current?.suspend();
       await AudioManager.setAudioSessionActivity(false);
       setActive(false);
@@ -41,7 +43,7 @@ export function AudioControls() {
   };
 
   const start = async () => {
-    if (busy.current || active || !recorder.current || !context.current || !gain.current) return;
+    if (busy.current || active || !context.current || !gain.current) return;
     busy.current = true;
     setStatus('جارٍ طلب إذن الميكروفون...');
     try {
@@ -52,13 +54,17 @@ export function AudioControls() {
       }
       await AudioManager.setAudioSessionActivity(true);
       if (context.current.state === 'suspended') await context.current.resume();
-      recorder.current.connect(context.current, gain.current);
-      const result = await recorder.current.start();
+      const newRecorder = new AudioRecorder();
+      recorder.current = newRecorder;
+      newRecorder.connect(context.current, gain.current);
+      const result = await newRecorder.start();
       if (result.status === 'error') throw new Error(result.message);
       setActive(true);
       setStatus('يعمل الميكروفون والصوت المباشر. استخدم سماعات أذن سلكية أو Bluetooth.');
     } catch (e) {
-      try { recorder.current?.disconnect(); await recorder.current?.stop(); } catch {}
+      const failedRecorder = recorder.current;
+      recorder.current = null;
+      try { if (failedRecorder) { await failedRecorder.stop(); failedRecorder.disconnect(); } } catch {}
       try { await context.current?.suspend(); await AudioManager.setAudioSessionActivity(false); } catch {}
       const detail = e instanceof Error ? e.message : String(e);
       setStatus(`تعذر تشغيل الصوت: ${detail.slice(0, 140)}`);
