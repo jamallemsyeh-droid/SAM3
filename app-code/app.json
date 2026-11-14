@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "سَمْع SAM3",
+    "slug": "sam3-hearing-assistant",
+    "scheme": "sam3",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      ["expo-audio", {"microphonePermission": "يحتاج سمع إلى الميكروفون لالتقاط الأصوات بموافقتك."}],
+      ["react-native-audio-api", {
+        "iosMicrophonePermission": "يحتاج سمع إلى الميكروفون لالتقاط الأصوات بموافقتك.",
+        "androidPermissions": ["android.permission.RECORD_AUDIO", "android.permission.MODIFY_AUDIO_SETTINGS"],
+        "androidForegroundService": false
+      }],
+      ["expo-notifications", {"icon": "./assets/notification-icon.png", "color": "#105A76"}]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {"NSMicrophoneUsageDescription": "يلتقط سمع الأصوات لتحسين إمكانية الوصول."}
+    },
+    "android": {
+      "permissions": ["RECORD_AUDIO", "POST_NOTIFICATIONS", "VIBRATE", "MODIFY_AUDIO_SETTINGS"],
+      "package": "com.example.sam3"
+    }
+  }
+}
