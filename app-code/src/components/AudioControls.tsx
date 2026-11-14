@@ -16,10 +16,8 @@ export function AudioControls() {
     gain.current = context.current.createGain();
     gain.current.gain.value = 1.5;
     gain.current.connect(context.current.destination);
-    AudioManager.setAudioSessionOptions({
-      iosCategory: 'playAndRecord',
-      iosMode: 'default',
-      iosOptions: [],
+    AudioManager.setSystemOptions({
+      ios: { category: 'playAndRecord', mode: 'default', options: [] },
     });
     return () => {
       void (async () => {
