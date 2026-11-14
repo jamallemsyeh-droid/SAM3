@@ -60,7 +60,8 @@ export function AudioControls() {
     } catch (e) {
       try { recorder.current?.disconnect(); await recorder.current?.stop(); } catch {}
       try { await context.current?.suspend(); await AudioManager.setAudioSessionActivity(false); } catch {}
-      const detail = e instanceof Error ? e.message : String(e);\n      setStatus(`تعذر تشغيل الصوت: ${detail.slice(0, 140)}`);
+      const detail = e instanceof Error ? e.message : String(e);
+      setStatus(`تعذر تشغيل الصوت: ${detail.slice(0, 140)}`);
       setActive(false);
     } finally { busy.current = false; }
   };
