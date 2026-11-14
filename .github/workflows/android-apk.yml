@@ -37,7 +37,7 @@ jobs:
           d.setdefault("dependencies", {})["react-native-audio-api"]="*"
           with open(p,"w") as f:
               json.dump(d,f,indent=2)
-              f.write("\\n")
+              f.write("\n")
           p=sys.argv[2]
           s=open(p).read()
           s=s.replace("  const [active, setActive] = useState(false);\\n","")
